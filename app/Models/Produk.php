@@ -19,4 +19,9 @@ class Produk extends Model
     {
         return $this->belongsTo(KategoriProduk::class, 'kategori_produk_id');
     }
+
+    public function getGambarProdukUrlAttribute()
+    {
+        return $this->gambar_produk ? asset('storage/' . $this->gambar_produk) : null;
+    }
 }
