@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\Auth;
 class AuthController extends Controller
 {
 
-
-
     public function login(Request $request)
     {
         try {
@@ -61,6 +59,58 @@ class AuthController extends Controller
             return response()->json([
                 'status'  => false,
                 'message' => 'Logout failed',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+    public function user(Request $request)
+    {
+        try {
+            return response()->json([
+                'status'  => true,
+                'message' => 'User retrieved successfully',
+                'data'    => $request->user(),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to retrieve user',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updateUser(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            $validatedData = $request->validate([
+                'nama_depan'    => 'sometimes|required|string|max:255',
+                'nama_belakang' => 'sometimes|required|string|max:255',
+                'email'         => 'sometimes|required|email|unique:users,email,' . $user->id,
+                'password'      => 'sometimes|required|string|min:8|confirmed',
+                'tanggal_lahir' => 'sometimes|required|date',
+                'jenis_kelamin' => 'sometimes|required|in:Laki-laki,Perempuan',
+            ]);
+
+            if (isset($validatedData['password'])) {
+                $validatedData['password'] = bcrypt($validatedData['password']);
+            }
+
+            $user->update($validatedData);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'User updated successfully',
+                'data'    => $user,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to update user',
                 'error'   => $e->getMessage(),
             ], 500);
         }

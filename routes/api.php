@@ -31,4 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transaksis', [\App\Http\Controllers\TransaksiController::class, 'index']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user', [AuthController::class, 'updateUser']);
 });
