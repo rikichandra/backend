@@ -17,9 +17,9 @@ class AuthController extends Controller
                 'nama_depan'    => 'required|string|max:255',
                 'nama_belakang' => 'required|string|max:255',
                 'email'         => 'required|email|unique:users,email',
-                'password'      => 'required|string|min:8|confirmed',
-                'tanggal_lahir' => 'required|date',
-                'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
+                'password'      => 'required|string|min:8',
+                'tanggal_lahir' => 'nullable|date',
+                'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
             ]);
 
             $user = User::create([
