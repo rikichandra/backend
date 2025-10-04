@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/register', [AuthController::class, 'register']);
 
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -29,9 +30,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // transaksi routes
     Route::post('/transaksis', [TransaksiController::class, 'store']);
     Route::get('/transaksis', [TransaksiController::class, 'index']);
+    Route::delete('/transaksis/{id}', [TransaksiController::class, 'destroy']);
 
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     Route::get('/user', [AuthController::class, 'user']);
-    Route::put('/user', [AuthController::class, 'updateUser']);
+    Route::put('/user/{id}', [AuthController::class, 'updateUser']);
 });

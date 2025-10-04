@@ -2,11 +2,50 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+
+    public function register(Request $request)
+    {
+        try {
+            $request->validate([
+                'nama_depan'    => 'required|string|max:255',
+                'nama_belakang' => 'required|string|max:255',
+                'email'         => 'required|email|unique:users,email',
+                'password'      => 'required|string|min:8|confirmed',
+                'tanggal_lahir' => 'required|date',
+                'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
+            ]);
+
+            $user = User::create([
+                'nama_depan'    => $request->nama_depan,
+                'nama_belakang' => $request->nama_belakang,
+                'email'         => $request->email,
+                'password'      => Hash::make($request->password),
+                'tanggal_lahir' => $request->tanggal_lahir,
+                'jenis_kelamin' => $request->jenis_kelamin,
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'User registered successfully',
+                'data'    => $user,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Registration failed',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
 
     public function login(Request $request)
     {
@@ -82,22 +121,24 @@ class AuthController extends Controller
         }
     }
 
-    public function updateUser(Request $request)
+    public function updateUser(Request $request,$id)
     {
         try {
-            $user = $request->user();
+            $user = User::findOrFail($id);
 
             $validatedData = $request->validate([
-                'nama_depan'    => 'sometimes|required|string|max:255',
-                'nama_belakang' => 'sometimes|required|string|max:255',
-                'email'         => 'sometimes|required|email|unique:users,email,' . $user->id,
-                'password'      => 'sometimes|required|string|min:8|confirmed',
-                'tanggal_lahir' => 'sometimes|required|date',
-                'jenis_kelamin' => 'sometimes|required|in:Laki-laki,Perempuan',
+                'nama_depan'    => 'string|max:255',
+                'nama_belakang' => 'string|max:255',
+                'email'         => 'email|unique:users,email,' . $user->id,
+                'password'      => 'nullable|string|min:8|confirmed',
+                'tanggal_lahir' => 'date',
+                'jenis_kelamin' => 'in:Laki-laki,Perempuan',
             ]);
 
             if (isset($validatedData['password'])) {
                 $validatedData['password'] = bcrypt($validatedData['password']);
+            } else {
+                unset($validatedData['password']);
             }
 
             $user->update($validatedData);

@@ -7,10 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Transaksi extends Model
 {
     protected $fillable = [
-        'user_id',
-        'produk_id',
+        'user_id',        
         'jenis_transaksi',
-        'jumlah_produk',
     ];
 
     public function user()
@@ -18,8 +16,8 @@ class Transaksi extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function produk()
+    public function detailTransaksis()
     {
-        return $this->belongsTo(Produk::class, 'produk_id');
+        return $this->hasMany(DetailTransaksi::class);
     }
 }

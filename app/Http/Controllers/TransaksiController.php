@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DetailTransaksi;
 use Illuminate\Http\Request;
 
 use App\Models\Transaksi;
@@ -14,18 +15,26 @@ class TransaksiController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Transaksi::with(['user', 'produk']);
+            $perPage = $request->get('per_page', 10);
+            $s = $request->get('s', '');
+            $query = Transaksi::with(['user', 'detailTransaksis.produk']);
+            if($s) {
+                $query->whereHas('detailTransaksis.produk', function($q) use ($s) {
+                    $q->where('nama_produk', 'like', '%' . $s . '%')
+                      ->orWhere('deskripsi_produk', 'like', '%' . $s . '%');
+                });
+            }
             if ($request->has('user_id')) {
                 $query->where('user_id', $request->user_id);
             }
-            $transaksis = $query->orderBy('created_at', 'desc')->get();
+            $transaksis = $query->orderBy('created_at', 'desc')->paginate($perPage);
             return response()->json([
-                'success' => true,
+                'status' => true,
                 'data' => $transaksis
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
+                'status' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -46,8 +55,14 @@ class TransaksiController extends Controller
             $userId = $request->user()->id;
             $jenisTransaksi = $request->jenis_transaksi;
             $produkList = $request->produk;
-            $createdTransaksi = [];
 
+            // Buat satu transaksi utama
+            $transaksi = Transaksi::create([
+                'user_id' => $userId,
+                'jenis_transaksi' => $jenisTransaksi,
+            ]);
+
+            $detailTransaksis = [];
             foreach ($produkList as $item) {
                 $produk = Produk::findOrFail($item['produk_id']);
                 $jumlah = $item['jumlah_produk'];
@@ -62,27 +77,69 @@ class TransaksiController extends Controller
                 }
                 $produk->save();
 
-                $transaksi = Transaksi::create([
-                    'user_id' => $userId,
+                $detailTransaksi = DetailTransaksi::create([
+                    'transaksi_id' => $transaksi->id,
                     'produk_id' => $produk->id,
-                    'jenis_transaksi' => $jenisTransaksi,
                     'jumlah_produk' => $jumlah,
                 ]);
-                $createdTransaksi[] = $transaksi;
+                $detailTransaksis[] = $detailTransaksi;
             }
 
             DB::commit();
             return response()->json([
-                'success' => true,
+                'status' => true,
                 'message' => 'Transaksi berhasil dibuat',
-                'data' => $createdTransaksi
+                'data' => [
+                    'transaksi' => $transaksi,
+                    'detail_transaksis' => $detailTransaksis
+                ]
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'success' => false,
+                'status' => false,
                 'message' => $e->getMessage()
             ], 400);
         }
     }
+
+    public function destroy($id)
+    {
+        try {
+            $transaksi = Transaksi::findOrFail($id);
+            DB::beginTransaction();
+            
+            if ($transaksi->jenis_transaksi === 'out') {
+                foreach ($transaksi->detailTransaksis as $detail) {
+                    $produk = Produk::findOrFail($detail->produk_id);
+                    $produk->stok_produk += $detail->jumlah_produk;
+                    $produk->save();
+                }
+            } else if ($transaksi->jenis_transaksi === 'in') {                
+                foreach ($transaksi->detailTransaksis as $detail) {
+                    $produk = Produk::findOrFail($detail->produk_id);
+                    if ($produk->stok_produk < $detail->jumlah_produk) {
+                        throw new \Exception("Stok produk '{$produk->nama_produk}' tidak mencukupi untuk menghapus transaksi.");
+                    }
+                    $produk->stok_produk -= $detail->jumlah_produk;
+                    $produk->save();
+                }
+            }
+
+            $transaksi->delete();
+            DB::commit();
+            return response()->json([
+                'status' => true,
+                'message' => 'Transaksi berhasil dihapus',
+                'data' => null,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
 }
