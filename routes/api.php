@@ -3,7 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\KategoriProdukController;
 use App\Http\Controllers\ProdukController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\TransaksiController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -27,8 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/produks/{id}', [ProdukController::class, 'destroy']);
 
     // transaksi routes
-    Route::post('/transaksis', [\App\Http\Controllers\TransaksiController::class, 'store']);
-    Route::get('/transaksis', [\App\Http\Controllers\TransaksiController::class, 'index']);
+    Route::post('/transaksis', [TransaksiController::class, 'store']);
+    Route::get('/transaksis', [TransaksiController::class, 'index']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
